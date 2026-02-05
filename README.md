@@ -115,17 +115,47 @@ $ podman run myimage /bin/sh  # still goes through fips-gate
 
 ## Building
 
+### Container build (recommended)
+
 ```console
-$ podman build -o ./target/release -t fips-gate .
+$ podman build -o . .
 ```
 
-Or with Cargo directly:
+This builds the binary and extracts `fips-gate` to the current directory. It uses `-Z build-std` to rebuild the Rust standard library with LTO, producing a ~60KB binary instead of ~300KB.
+
+### Local build
+
+For a standard release build:
 
 ```console
 $ cargo build --release
 ```
 
-The binary is at `./target/release/fips-gate`.
+For the optimized build (requires `rust-src` component):
+
+```console
+$ rustup component add rust-src
+$ RUSTC_BOOTSTRAP=1 RUSTFLAGS="-Zunstable-options -Cpanic=immediate-abort" \
+    cargo build -Z build-std=core,std,alloc --target x86_64-unknown-linux-gnu --release
+```
+
+The binary is at `./target/x86_64-unknown-linux-gnu/release/fips-gate`.
+
+### Build size comparison
+
+| Build type | Binary size |
+|------------|-------------|
+| Standard `cargo build --release` | ~300KB |
+| With `-Z build-std` | ~60KB |
+
+The optimized build uses:
+- `-Z build-std=core,std,alloc` - Rebuilds stdlib with LTO, eliminating unused code
+- `-Cpanic=immediate-abort` - Replaces panic machinery with simple abort
+- `lto = true` - Link-time optimization across all crates
+- `opt-level = "z"` - Optimize for size
+- `strip = true` - Remove symbols
+
+Note: `RUSTC_BOOTSTRAP=1` enables unstable compiler features on stable Rust. This technique is used by Android, Firefox, and Chromium for production builds.
 
 ## Testing
 
