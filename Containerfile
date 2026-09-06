@@ -1,4 +1,4 @@
-FROM quay.io/hummingbird/rust AS builder
+FROM quay.io/hummingbird/rust@sha256:69baac0faf77754d72189f7c764075d02d1dcd3efe3749eda072e6e0592a774a AS builder
 
 WORKDIR /build
 COPY Cargo.toml Cargo.lock .
